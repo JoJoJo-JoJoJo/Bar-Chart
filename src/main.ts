@@ -3,7 +3,7 @@ import * as d3 from "d3";
 
 //TODO: Import dimensions from "/constants.ts"
 import { margin, width, height, url } from "./constants/constants";
-import { data } from "./constants/types";
+import { data as Data } from "./constants/types";
 
 const barChart = d3.select("#bar-chart");
 
@@ -22,17 +22,14 @@ const tooltip = barChart
   .attr("id", "tooltip")
   .style("opacity", 0);
 
-const tooltipBG = barChart
-  .append("div")
-  .attr("class", "overlay")
-  .style("opacity", 0);
-
 //TODO: Load and process data
 fetch(url)
   .then((res) => res.json())
   .then((obj) => {
-    const { data } = obj;
-    data.forEach((d: data) => {
+    type json = typeof obj.data;
+    const { data }: json = obj;
+
+    data.forEach((d: Data) => {
       d[1] = +d[1];
     });
 
@@ -46,8 +43,8 @@ fetch(url)
       .domain([new Date(data[0][0]), new Date(data[data.length - 1][0])])
       .range([0, width]);
 
-    const yDomainMax: number = d3.max(data, (d: data) => d[1]);
-    const yScale = d3.scaleLinear().domain([0, yDomainMax]).range([height, 0]);
+    const yDomainMax: number = d3.max(data, (d: Data) => d[1])!;
+    const yScale = d3.scaleLinear()?.domain([0, yDomainMax]).range([height, 0]);
 
     //TODO: Create x and y axis
     const xAxis = d3.axisBottom(xScale);
@@ -63,28 +60,32 @@ fetch(url)
     svg.append("g").attr("id", "y-axis").call(yAxis);
 
     //TODO: Create bars for chart
-    const iterDate = data.map((d: string) => new Date(d[0]));
+    const iterDate = data.map((d: Data) => new Date(d[0]));
 
     const marks = svg.selectAll(".bar").data(data);
+
+    type dParam = typeof data;
 
     marks
       .enter()
       .append("rect")
-      .attr("data-date", (d) => d[0])
-      .attr("data-gdp", (d) => d[1])
+      .attr("data-date", (d: dParam) => d[0])
+      .attr("data-gdp", (d: dParam) => d[1])
       .style("fill", "pink")
       .attr("class", "bar")
       .attr("x", (_, i) => xScale(iterDate[i]))
-      .attr("y", (d) => yScale(d[1]))
-      .attr("height", (d) => height - yScale(d[1]))
+      .attr("y", (d: dParam) => yScale(d[1]))
+      .attr("height", (d: dParam) => height - yScale(d[1]))
       .attr("width", width / data.length)
-      .on("mouseover", (e, d) => {
+      .on("mouseover", (e, d: dParam) => {
         const [mx, my] = d3.pointer(e);
 
-        tooltipBG;
-
         const tooltipText = `
-          <strong>Date:</strong> ${d[0].split("-").reverse().slice(1).join(", ")}
+          <strong>Date:</strong> ${d[0]
+            .split("-")
+            .reverse()
+            .slice(1)
+            .join(", ")}
           <br>
           <strong>GDP:</strong> $${Math.floor(d[1]).toLocaleString()}B`;
 
@@ -95,7 +96,9 @@ fetch(url)
           .html(tooltipText)
           .transition()
           .duration(50)
-          .style("opacity", 1)
+          .style("opacity", 1);
       })
-      .on("mouseout", () => tooltip.transition().duration(50).style("opacity", 0));
+      .on("mouseout", () =>
+        tooltip.transition().duration(50).style("opacity", 0)
+      );
   });
